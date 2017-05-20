@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 2.8)
+project( FT )
+find_package( OpenCV REQUIRED )
+
+#add_executable( smoothFaceTracking smooth_face_tracking.cpp )
+#add_executable( basicFaceTracking basic_face_detection.cpp )
+add_executable( DisplayFaces DisplayFaces.cpp )
+#target_link_libraries( smoothFaceTracking ${OpenCV_LIBS} )
+#target_link_libraries( basicFaceTracking ${OpenCV_LIBS} )
+target_link_libraries( DisplayFaces ${OpenCV_LIBS} )
