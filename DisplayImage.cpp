@@ -8,33 +8,28 @@
 #include<stdlib.h>
 #include <cmath>
 
-
-
 using namespace std;
 using namespace cv;
 
-
 /* Function Headers */
 Point detectFace( Mat frame, Point priorCenter );
-
-
 
 CascadeClassifier face_cascade, eyes_cascade;
 
 String display_window = "Display";
 String face_window = "Face View";
 
-
 int maxFaces = 5;
 int numOfPrevFaces = 0;
 
 int timesDissapered[5];
 int timesAppeared[5];
+int timesAppearedFirst[5];
 
-int showAfterTimeOfAppeared = 2;
-int hideAfterTimeOfDissapeared = 1;
+int showAfterTimeOfAppeared = 5;
+int hideAfterTimeOfDissapeared = 5;
 
-
+int c = 1, d = 1;
 Mat PreviousAllFaces[5];
 Point PreviousAllFacesCenters[5];
 
@@ -47,12 +42,11 @@ int main() {
   eyes_cascade.load("haarcascade_eye_tree_eyeglasses.xml"); // load eye classifiers
 
   namedWindow(face_window, CV_WINDOW_AUTOSIZE | CV_WINDOW_FREERATIO | CV_GUI_EXPANDED);
-
+  moveWindow(face_window,20,20);
   // Loop to capture frames
   while(cap.read(frame)) {
-    // Apply the classifier to the frame, i.e. find face
-    priorCenter = detectFace(frame, priorCenter);
-
+    detectFace(frame, priorCenter);
+    int c = 1, d = 1;
     if(waitKey(30) >= 0) {// spacebar
       break;
     }
@@ -64,7 +58,6 @@ int main() {
 * Output a frame of only the the rectangle centered at point
 */
 Mat outputFrame(Mat frame, Point center, int w, int h) { // funkcija za risanje outputa na Face View window
-
   int x = (center.x - w/2);
   int y = (center.y - 3*h/5);
 
@@ -77,48 +70,6 @@ Mat outputFrame(Mat frame, Point center, int w, int h) { // funkcija za risanje 
   // output frame of only face
   return frame(Rect(x, y, w, h));
 }
-
-// Find face from eyes
-Point faceFromEyes(Point priorCenter, Mat face) {
-
-  std::vector<Rect> eyes;
-  int avg_x = 0;
-  int avg_y = 0;
-
-  // Try to detect eyes, if no face is found
-  eyes_cascade.detectMultiScale(face, eyes, 1.1, 2, 0 |CASCADE_SCALE_IMAGE, Size(30, 30));
-
-  // Iterate over eyes
-  for(size_t j = 0; j < eyes.size(); j++) {
-
-    // centerpoint of eyes
-    Point eye_center(priorCenter.x + eyes[j].x + eyes[j].width/2, priorCenter.y + eyes[j].y + eyes[j].height/2);
-
-    // Average center of eyes
-    avg_x += eye_center.x;
-    avg_y += eye_center.y;
-  }
-
-  // Use average location of eyes
-  if(eyes.size() > 0) {
-    priorCenter.x = avg_x / eyes.size();
-    priorCenter.y = avg_y / eyes.size();
-  }
-
-  return priorCenter;
-}
-
-// Rounds up to multiple
-int roundUp(int numToRound, int multiple) {
-
-  if (multiple == 0) return numToRound;
-
-  int remainder = abs(numToRound) % multiple;
-  if (remainder == 0) return numToRound;
-  if (numToRound < 0) return -(abs(numToRound) - remainder);
-  return numToRound + multiple - remainder;
-}
-
 
 
 // Detect face and display it
@@ -143,46 +94,29 @@ Point detectFace(Mat frame, Point priorCenter) {
   Mat currentAllFaces[faces.size()];
   Point currentAllFacesCenters[faces.size()];
   // iterate over faces
-  printf("**************************start**************************\n");
   for( size_t i = 0; i < faces.size(); i++ ) //iterate over all faces
   {
     Point center( faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5 ); // postavis se na sredino obraza
-    // h = roundUp(faces[i].height, frame.size().height / 4);
-    // w = 3 * h / 5;
     h = 240; //postavis velikost za vsaki obraz na novemu frame
     w = 144; //postavis velikost za vsaki obraz na novemu frame
     temp = outputFrame(frame, center, w, h);
     currentAllFaces[i] = temp;
     currentAllFacesCenters[i] = center;
-    // printf("%d - %d\n", center.x, center.y);
 
-    // printf("%d: Obraz stevilka: %d, dolzina: %d\n", i, (currentAllFaces[i].size().height),(currentAllFaces[i].size().width));
-    // printf("frane size width: %d\n",frame.size().width);
-    // printf("h %d, w %d\n",h,w);
-  //   int c = 1, d = 1;
-   //
-  //  for ( c = 1 ; c <= 32767 ; c++ ){
-  //     for ( d = 1 ; d <= 6000 ; d++ ){
-   //
-  //     }
-  //   }
   }
   if(faces.size() == 0) {
     faceNotFound = true;
   }
 
   count_tmp = (sizeof(currentAllFaces)/sizeof(*currentAllFaces));
-  printf("Vseh pizdarij je %d; Vseh ze narejenih obrazov je%d\n",count_tmp, numOfPrevFaces );
 
   if(faceNotFound) { //ce ni nobenega obraza
     temp = frame;
-
     //preveris, ce je slucajno od prej nekaj oseb gor
     //ce niso pokazes prazen oz default frame
     if(numOfPrevFaces == 0) imshow(face_window, temp);
     else {
       //ce je oseba ze od prej gor potem preveri njen cas
-
       int stevecZivihOseb = 0;
       for (size_t i = 0; i < numOfPrevFaces; i++) {
         timesDissapered[i] = (int)time(NULL);
@@ -196,7 +130,7 @@ Point detectFace(Mat frame, Point priorCenter) {
         numOfPrevFaces = 0;
         imshow(face_window, temp);
       }else {
-        // printf("se ne spreminja ker ne najdem vec osebe\n");
+        printf("TODO\n");
       }
     }
   }else {
@@ -227,7 +161,7 @@ Point detectFace(Mat frame, Point priorCenter) {
 
     // printf("Count: %d\n", count);
 
-    //pokazemo okno na face_window; ce ni nobenega face potem pokazi cel window
+    //pokazemo okno na face_window; ce ni nobenega koristnega obraza potem pokazi cel window
     if(count == 0) {
       printf("Tukaj!\n");
       if(numOfPrevFaces == 0) imshow(face_window, frame);
@@ -235,20 +169,18 @@ Point detectFace(Mat frame, Point priorCenter) {
         for (size_t i = 0; i < numOfPrevFaces; i++) {
           timesDissapered[i] = (int)time(NULL);
           if(abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared) {
-            printf("Skrij me :(\n");
+            // printf("TODO ???Skrij me :(\n");
           }
         }
       }
     } else {
 
       // premore le 5 oseb; zato jih pokaze le toliko
-       // seconds
-      // tv.tv_usec // microseconds
       // printf("Vseh pravih obrazov je: %d, ob %d\n ", count, (int)time(NULL));
-      // scanf("%d\n", );
 
       //ce ni nobenega od prejsnjih obrazov, potem jih ustvari; sprejmi pa le
       //prvih pet; prav tako zavrzi smeti v currentAllFaces[i]
+
       if (numOfPrevFaces == 0){
         for (size_t i = 0; i < count_tmp; i++) { //sprehodi se po currentAllFaces(s smetmi)
           if(numOfPrevFaces >= maxFaces) { //ce imas ze pet obrazov koncaj prerisovanje v PreviousAllFaces[numOfPrevFaces]
@@ -260,6 +192,7 @@ Point detectFace(Mat frame, Point priorCenter) {
           PreviousAllFaces[numOfPrevFaces] = im1; //drugace ga dodamo na PreviousAllFaces
           PreviousAllFacesCenters[numOfPrevFaces] = currentAllFacesCenters[i]; //in postavimo points
           timesAppeared[numOfPrevFaces] = (int)time(NULL);
+          timesAppearedFirst[numOfPrevFaces] = (int)time(NULL);
           timesDissapered[numOfPrevFaces] = -1;
           numOfPrevFaces +=1; // povecamo stevilo prejsnjih obrazov za 1
         }
@@ -292,22 +225,15 @@ Point detectFace(Mat frame, Point priorCenter) {
             if(sz1.height != 240) continue; //preskocimo smeti
 
             //preverimo ce sta enaka
-            // printf("%d < %d AND %d < %d : %d\n", abs(currentAllFacesCenters[i].x - PreviousAllFacesCenters[j].x), frame.size().width / 6 , abs(currentAllFacesCenters[i].y - PreviousAllFacesCenters[j].y) , frame.size().height / 6,0);
-            if(abs(currentAllFacesCenters[i].x - PreviousAllFacesCenters[j].x) < frame.size().width / 6 && abs(currentAllFacesCenters[i].y - PreviousAllFacesCenters[j].y) < frame.size().height / 6) {
-              // printf("Je isti!!!\n" );
+            if(abs(currentAllFacesCenters[i].x - PreviousAllFacesCenters[j].x) < frame.size().width / 10 && abs(currentAllFacesCenters[i].y - PreviousAllFacesCenters[j].y) < frame.size().height / 10) {
               usedCurrentFaces[j] = true;
               jeIsti = true;
               break;
             }
           }
-          // printf("jeIsti: %d\n", jeIsti );
           //ce nismo nasli istega ga dodamo, ce je se prostora
           if(!jeIsti && numOfPrevFaces < 5) {
-            // PreviousAllFaces[numOfPrevFaces] = currentAllFaces[j-1];
-            // printf("tukaj sem\n");
-            // PreviousAllFacesCenters[numOfPrevFaces] = currentAllFacesCenters[j-1];
-            // printf("tukaj sem\n");
-            // numOfPrevFaces += 1;
+            //dodamo potem
           }else if(jeIsti) { //ce je isti ga posodobimo
             visitedPreviousFaces[i] = true;
             PreviousAllFaces[i] = currentAllFaces[j];
@@ -315,7 +241,7 @@ Point detectFace(Mat frame, Point priorCenter) {
             timesAppeared[i] = (int)time(NULL);
             timesDissapered[i] = -1;
           }else {
-            printf("Prevec obrazov\n");
+            // printf("Prevec obrazov %d\n", numOfPrevFaces);
           }
         }
 
@@ -328,120 +254,111 @@ Point detectFace(Mat frame, Point priorCenter) {
             Mat im1 = currentAllFaces[i];
             Size sz1 = im1.size();
             if(sz1.height != 240) continue; //preskocimo smeti
-            printf("Nov obraz\n");
-
+            timesAppearedFirst[numOfPrevFaces] = (int)time(NULL);
             PreviousAllFaces[numOfPrevFaces] = currentAllFaces[i];
-            // printf("tukaj sem\n");
             PreviousAllFacesCenters[numOfPrevFaces] = currentAllFacesCenters[i];
-            // printf("tukaj sem\n");
             numOfPrevFaces += 1;
           }
         }
-
         Mat PreviousAllFacesTmp[maxFaces];
         Point PreviousAllFacesCentersTmp[maxFaces];
         int timesDissaperedTmp[maxFaces];
         int timesAppearedTmp[maxFaces];
+        int timesAppearedFirstTmp[maxFaces];
         int numOfPrevFacesTmp = 0;
         for (size_t i = 0; i < numOfPrevFaces; i++) {
-          printf("Korak %d od %d\n", i, numOfPrevFaces);
-          // printf("**velikostPreviousTmp %d\n", velikostPreviousTmp);
+
+          // printf("Korak %d od %d\n", i, numOfPrevFaces);
+          // printf("   Obiskan: %d\n", visitedPreviousFaces[i]);
+          // printf("   Pokazal: %d\n", timesAppeared[i]);
+          // printf("   Zginill: %d\n", timesDissapered[i]);
+          // printf("   Sem za skriti: %d\n", (abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared));
 
           if(i >= velikostPreviousTmp){ //ce ja kaksen nov
-            printf("Jst se nisem obstajal\n");
-
             timesAppearedTmp[numOfPrevFacesTmp] = (int)time(NULL);
+            timesAppearedFirstTmp[numOfPrevFacesTmp] = (int)time(NULL);
             timesDissaperedTmp[numOfPrevFacesTmp] = -1;
             PreviousAllFacesTmp[numOfPrevFacesTmp] = PreviousAllFaces[i];
             PreviousAllFacesCentersTmp[numOfPrevFacesTmp] = PreviousAllFacesCenters[i];
             numOfPrevFacesTmp += 1;
           }else{
-            printf("***jst sem ze obstajal\n");
-
             //ce je se tukaj oz je obiskan
             if(visitedPreviousFaces[i]){
-              printf("******sem spet obiskan\n");
               timesAppearedTmp[numOfPrevFacesTmp] = (int)time(NULL);
+              timesAppearedFirstTmp[numOfPrevFacesTmp] = timesAppearedFirst[i];
               timesDissaperedTmp[numOfPrevFacesTmp] = -1;
               PreviousAllFacesTmp[numOfPrevFacesTmp] = PreviousAllFaces[i];
               PreviousAllFacesCentersTmp[numOfPrevFacesTmp] = PreviousAllFacesCenters[i];
               numOfPrevFacesTmp += 1;
             } else { //ce ga ni
               if(timesDissapered[i] == -1) { //ce prej se ni zginil
-                printf("*********sem prvic izginil\n");
+                timesAppearedTmp[numOfPrevFacesTmp] = timesAppeared[i];
+                timesAppearedFirstTmp[numOfPrevFacesTmp] = timesAppearedFirst[i];
                 timesDissaperedTmp[numOfPrevFacesTmp] = (int)time(NULL);
                 PreviousAllFacesTmp[numOfPrevFacesTmp] = PreviousAllFaces[i];
                 PreviousAllFacesCentersTmp[numOfPrevFacesTmp] = PreviousAllFacesCenters[i];
                 numOfPrevFacesTmp += 1;
               }else if(abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared){
-                printf("*********se ne stejem vec med vami\n");
                 //je cas da izgine po dveh sekundah
                 //ne naredimo nicesar
-                // numOfPrevFacesTmp += 1;
-
               }else{
-                printf("*********xoxoxoxoxxoxoxoxoxoxoxoxoxoxooxsem prisel nazaj\n");
                 //drugace ce je ze prej izginil samo ni ce poteklo hideAfterTimeOfDissapeared casa
                 //ga vseeno pokazemo ampak povecamo time dissapeared
                 timesAppearedTmp[numOfPrevFacesTmp] = timesAppeared[i];
+                timesAppearedFirstTmp[numOfPrevFacesTmp] = timesAppearedFirst[i];
                 timesDissaperedTmp[numOfPrevFacesTmp] = (int)time(NULL);
                 PreviousAllFacesTmp[numOfPrevFacesTmp] = PreviousAllFaces[i];
                 PreviousAllFacesCentersTmp[numOfPrevFacesTmp] = PreviousAllFacesCenters[i];
                 numOfPrevFacesTmp += 1;
               }
             }
-
-
           }
         }
         for(size_t loop = 0; loop < numOfPrevFacesTmp; loop++) {
-          // copied[loop] = original[loop];
           PreviousAllFaces[loop] = PreviousAllFacesTmp[loop];
           PreviousAllFacesCenters[loop] = PreviousAllFacesCentersTmp[loop];
           timesAppeared[loop] = timesAppearedTmp[loop];
+          timesAppearedFirst[loop] = timesAppearedFirstTmp[loop];
           timesDissapered[loop] = timesDissaperedTmp[loop];
         }
         numOfPrevFaces = numOfPrevFacesTmp;
-        printf("XXXXXXXXXX konec prepisov xxxxxxxxxx\n");
-
       }
 
 
       Mat im3;
-      // if(count > 5){
-      //   im3.create(240, 144*5, CV_8UC3); // ustvaris horizontalni view za 5 oseb
-      // }else im3.create(240, 144*count, CV_8UC3); // ustvaris horizontalni view za count oseb
+
+      int realNumOfFaces = 0;
+      for (size_t i = 0; i < numOfPrevFaces; i++) {
+        Mat im1 = PreviousAllFaces[i];
+        Size sz1 = im1.size();
+        if(sz1.height != 240) continue; //naj se ne bi zgodilo
+        if(abs(timesAppearedFirst[i] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+          realNumOfFaces +=1;
+        }
+      }
+      // if(realNumOfFaces > 1) {
+      //   for (size_t i = 0; i < numOfPrevFaces; i++) {
+      //
+      //     printf("Korak %d od %d\n", i, numOfPrevFaces);
+      //     printf("   Pokazal: %d\n", timesAppeared[i]);
+      //     printf("   Zginill: %d\n", timesDissapered[i]);
+      //     printf("   Sem za skriti: %d\n", (abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared));
+      //   }
+      // }
       im3.create(240, 144*numOfPrevFaces, CV_8UC3);
 
-
-      // sprehodi se po PreviousAllFaces in izrisi obraze po vrsti
-      // printf("Vseh obrazov v finalni obliki: %d\n", numOfPrevFaces );
       stevec = 0;
-      for (size_t j = 0; j < numOfPrevFaces; j++) {
+      for (size_t j = 0; j < numOfPrevFaces && realNumOfFaces > 0; j++) {
         Mat im1 = PreviousAllFaces[j];
         Size sz1 = im1.size();
-
-        // printf("%d: ima prvi param: %d, drugi param: %d, tretji param %d\n", PreviousAllFacesCenters[j].x * j, PreviousAllFacesCenters[j].x, PreviousAllFacesCenters[j].y);
-        // im1.copyTo(im3(Rect(PreviousAllFaces[j].x * 0, 0, PreviousAllFaces[j].x, PreviousAllFaces[j].y)));
-        // printf("%d: ima prvi param: %d, drugi param: %d, tretji param %d\n",j, sz1.width * j, sz1.width, sz1.height);
-        // printf("........%d: ima prvi param: %d, drugi param: %d, tretji param %d\n",j, PreviousAllFacesCenters[j].x * j, PreviousAllFacesCenters[j].x, PreviousAllFacesCenters[j].y);
-        // printf("\n");
-        // if(sz1.height != 240) continue; //naj se ne bi zgodilo
-        if(abs(timesAppeared[j] - (int)time(NULL)) > showAfterTimeOfAppeared) {
-
+        if(sz1.height != 240) continue; //naj se ne bi zgodilo
+        if(abs(timesAppearedFirst[j] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+          im1.copyTo(im3(Rect(sz1.width * stevec, 0, sz1.width, sz1.height)));
+          stevec += 1;
         }
-        im1.copyTo(im3(Rect(sz1.width * stevec, 0, sz1.width, sz1.height)));
-        stevec += 1;
       }
-      // printf("\n");
-      // printf("\n");
-      //pokazi vse dobljene obraze
-      imshow(face_window, im3);
+      if(realNumOfFaces > 0) imshow(face_window, im3);
     }
   }
-
   imshow( display_window, frame );
-  printf("***************************end***************************\n");
-
-  return priorCenter;
 }
