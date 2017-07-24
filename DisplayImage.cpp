@@ -117,21 +117,30 @@ Point detectFace(Mat frame, Point priorCenter) {
     if(numOfPrevFaces == 0) imshow(face_window, temp);
     else {
       //ce je oseba ze od prej gor potem preveri njen cas
-      int stevecZivihOseb = 0;
+      Mat im3;
+
+      int realNumOfFaces = 0;
       for (size_t i = 0; i < numOfPrevFaces; i++) {
-        timesDissapered[i] = (int)time(NULL);
-        if(abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared) {
-          //im dead :(
-        } else {
-          stevecZivihOseb += 1;
+        Mat im1 = PreviousAllFaces[i];
+        Size sz1 = im1.size();
+        if(sz1.height != 240) continue; //naj se ne bi zgodilo
+        if(abs(timesAppearedFirst[i] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+          realNumOfFaces +=1;
         }
       }
-      if(stevecZivihOseb == 0) {
-        numOfPrevFaces = 0;
-        imshow(face_window, temp);
-      }else {
-        printf("TODO\n");
+      im3.create(240, 144*realNumOfFaces, CV_8UC3);
+
+      stevec = 0;
+      for (size_t j = 0; j < numOfPrevFaces && realNumOfFaces > 0; j++) {
+        Mat im1 = PreviousAllFaces[j];
+        Size sz1 = im1.size();
+        if(sz1.height != 240) continue; //naj se ne bi zgodilo
+        if(abs(timesAppearedFirst[j] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+          im1.copyTo(im3(Rect(sz1.width * stevec, 0, sz1.width, sz1.height)));
+          stevec += 1;
+        }
       }
+      if(realNumOfFaces > 0) imshow(face_window, im3);
     }
   }else {
     // count_tmp = (sizeof(currentAllFaces)/sizeof(*currentAllFaces));
@@ -166,12 +175,31 @@ Point detectFace(Mat frame, Point priorCenter) {
       printf("Tukaj!\n");
       if(numOfPrevFaces == 0) imshow(face_window, frame);
       else {
+
+        Mat im3;
+
+        int realNumOfFaces = 0;
         for (size_t i = 0; i < numOfPrevFaces; i++) {
-          timesDissapered[i] = (int)time(NULL);
-          if(abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared) {
-            // printf("TODO ???Skrij me :(\n");
+          Mat im1 = PreviousAllFaces[i];
+          Size sz1 = im1.size();
+          if(sz1.height != 240) continue; //naj se ne bi zgodilo
+          if(abs(timesAppearedFirst[i] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+            realNumOfFaces +=1;
           }
         }
+        im3.create(240, 144*realNumOfFaces, CV_8UC3);
+
+        stevec = 0;
+        for (size_t j = 0; j < numOfPrevFaces && realNumOfFaces > 0; j++) {
+          Mat im1 = PreviousAllFaces[j];
+          Size sz1 = im1.size();
+          if(sz1.height != 240) continue; //naj se ne bi zgodilo
+          if(abs(timesAppearedFirst[j] - (int)time(NULL)) > showAfterTimeOfAppeared) {
+            im1.copyTo(im3(Rect(sz1.width * stevec, 0, sz1.width, sz1.height)));
+            stevec += 1;
+          }
+        }
+        if(realNumOfFaces > 0) imshow(face_window, im3);
       }
     } else {
 
@@ -345,7 +373,7 @@ Point detectFace(Mat frame, Point priorCenter) {
       //     printf("   Sem za skriti: %d\n", (abs(timesDissapered[i]-timesAppeared[i]) > hideAfterTimeOfDissapeared));
       //   }
       // }
-      im3.create(240, 144*numOfPrevFaces, CV_8UC3);
+      im3.create(240, 144*realNumOfFaces, CV_8UC3);
 
       stevec = 0;
       for (size_t j = 0; j < numOfPrevFaces && realNumOfFaces > 0; j++) {
